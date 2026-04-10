@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIT8103 Assessment</title>
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --card-bg: #1e293b;
+            --bg-topbar: #020617;
+            --text-light: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-light);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* --- MODAL (Start Screen) --- */
+        #start-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .start-modal {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .start-modal h2 { margin-top: 0; color: var(--text-light); }
+        .start-modal p { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            background: var(--input-bg);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .btn-start:hover { background: #2563eb; }
+
+        /* --- EXAM INTERFACE --- */
+        #exam-wrapper { display: none; }
+
+        /* Top Bar */
+        .top-bar {
+            background-color: var(--bg-topbar);
+            color: var(--text-light);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .time-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .time-label {
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .timer-display {
+            font-size: 32px;
+            font-weight: bold;
+            font-family: monospace;
+            margin-top: 5px;
+            color: #22d3ee; /* Bright Cyan for visibility */
+        }
+
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .navigator-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--border-color);
+            color: var(--text-light);
+            border: 1px solid #475569;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .nav-btn:hover { background: #475569; }
+        .nav-btn.active {
+            background: var(--accent-blue);
+            border-color: #60a5fa;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+        .nav-btn.answered {
+            border: 2px solid var(--accent-green);
+        }
+        .nav-btn.answered::after {
+            content: "✓";
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--card-bg);
+            color: var(--accent-green);
+            font-size: 10px;
+            border-radius: 50%;
+            padding: 1px 3px;
+        }
+
+        /* Sub-header (Proctoring) */
+        .sub-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 30px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .webcam-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+        }
+        .webcam-indicator .dot {
+            height: 10px; width: 10px;
+            background-color: var(--accent-red);
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0% {opacity:1;} 50% {opacity:0.3;} 100% {opacity:1;} }
+
+        .violation-counter { color: var(--accent-red); }
+
+        /* Main Content */
+        .main-content {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .question-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .prompt-header {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-light);
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .scenario-text {
+            font-size: 16px;
+            margin-bottom: 25px;
+            color: var(--text-light);
+        }
+
+        .sub-questions p {
+            margin-bottom: 15px;
+            font-size: 15px;
+            color: var(--text-light);
+        }
+
+        textarea {
+            width: 100%;
+            height: 350px;
+            padding: 15px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 15px;
+            resize: vertical;
+            background: var(--input-bg);
+            color: var(--text-light);
+            margin-top: 20px;
+        }
+        textarea:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);}
+
+        .word-count {
+            text-align: right;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        .word-count.limit-reached { color: var(--accent-red); }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            background: var(--border-color);
+            border: 1px solid #475569;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: background 0.2s;
+        }
+        .action-btn:hover:not(:disabled) { background: #475569; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .submit-btn {
+            background: var(--accent-green);
+            color: white;
+            border: none;
+        }
+        .submit-btn:hover { background: #16a34a; }
+
+        /* --- RESULTS --- */
+        #results-wrapper { display: none; max-width: 800px; margin: 40px auto; padding: 20px; }
+        .result-box { 
+            background: var(--card-bg); 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            border-radius: 8px; 
+            border-left: 5px solid var(--accent-blue); 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-modal-overlay">
+        <div class="start-modal">
+            <h2>MIT8103 Assessment</h2>
+            <p>Advanced Database Systems</p>
+            
+            <div class="input-group">
+                <label for="candidate-name">Candidate Full Name</label>
+                <input type="text" id="candidate-name" placeholder="e.g. John Doe">
+            </div>
+            <div class="input-group">
+                <label for="api-key">Google Gemini API Key (Required for Grading)</label>
+                <input type="password" id="api-key" placeholder="Paste API key here">
+            </div>
+            
+            <button class="btn-start" id="btn-start-exam">Begin Assessment</button>
+            <p style="margin-top: 15px; font-size: 12px; color: var(--accent-red);">
+                <strong>Warning:</strong> Tab tracking and strict proctoring will activate immediately upon starting.
+            </p>
+        </div>
+    </div>
+
+    <div id="exam-wrapper">
+        <div class="top-bar">
+            <div class="time-section">
+                <span class="time-label">Time Remaining</span>
+                <span class="timer-display" id="timer">03:00:00</span>
+            </div>
+            <div class="nav-section">
+                <span class="nav-label">Navigator</span>
+                <div class="navigator-grid" id="navigator-grid">
+                    </div>
+            </div>
+        </div>
+
+        <div class="sub-header">
+            <div class="webcam-indicator"><div class="dot"></div> Simulated Webcam Active</div>
+            <div class="candidate-display" id="display-name">Candidate: </div>
+            <div class="violation-counter" id="violation-display">Violations: 0/3</div>
+        </div>
+
+        <div class="main-content">
+            <div class="question-card">
+                <h2 class="prompt-header" id="prompt-header">Essay Prompt 1 / 20</h2>
+                
+                <div class="scenario-text" id="scenario-text">
+                    </div>
+                
+                <div class="sub-questions" id="sub-questions">
+                    </div>
+
+                <textarea id="answer-box" placeholder="Type your comprehensive response here. Ensure you address sub-questions (a), (b), and (c)."></textarea>
+                <div class="word-count" id="word-count">0 / 1500 words</div>
+
+                <div class="action-bar">
+                    <button class="action-btn" id="btn-prev">Previous</button>
+                    <button class="action-btn submit-btn" id="btn-submit">Submit Assessment</button>
+                    <button class="action-btn" id="btn-next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="results-wrapper">
+        <h1 style="color: var(--text-light);">Assessment Complete</h1>
+        <h2 id="final-score" style="color: var(--text-muted);">Grading in progress...</h2>
+        <div id="results-container"></div>
+    </div>
+
+<script>
+    // --- 20 QUESTION BANK (Generated directly from the PDF Lecture Notes) ---
+    const questions = [
+        {
+            scenario: "A university is migrating its legacy student records system to a new relational database. The current flat-file system suffers from severe data anomalies when updating student addresses or deleting course registrations.",
+            sub_a: "Identify the key characteristics of a good database that the university should aim to achieve in their new system.",
+            sub_b: "Describe the process of normalization from 1NF to 3NF using the student records scenario as context.",
+            sub_c: "Critically evaluate the trade-offs of applying Boyce-Codd Normal Form (BCNF) to this system, specifically considering query performance.",
+            reference: "Characteristics include Data Integrity, Scalability, Redundancy Management, Security, Performance (Pages 33-34). Normalization process involves achieving atomicity (1NF), removing partial dependencies (2NF), and eliminating transitive dependencies (3NF). BCNF trade-off involves stricter anomaly prevention at the cost of highly fragmented tables that require complex, slow JOIN operations for data retrieval."
+        },
+        {
+            scenario: "FinServe, a regional bank, relies on a centralised Client-Server database architecture for all its branch operations. Recently, the central server experienced a hardware failure, bringing all branch transactions to a complete halt.",
+            sub_a: "Explain the fundamental components and structure of the Client-Server database architecture used by FinServe.",
+            sub_b: "Outline the specific advantages and disadvantages of this architecture for a banking environment.",
+            sub_c: "Justify a migration to a Distributed Database System to mitigate the operational risks experienced during the recent failure.",
+            reference: "Client-Server involves clients requesting data and a central server processing queries (Page 46). Advantages: Centralized management, strict security/control. Disadvantages: Single point of failure, performance bottlenecks under heavy load. A Distributed Database System ensures fault tolerance, high availability, and reliability, as failure in one node allows the system to continue using data from other sites (Pages 42, 46)."
+        },
+        {
+            scenario: "A global e-commerce platform stores customer and product data across data centres in Europe, Asia, and North America. To optimise query response times, they are redesigning their data allocation and distribution strategy.",
+            sub_a: "Differentiate between horizontal, vertical, and hybrid data fragmentation in this distributed context.",
+            sub_b: "Describe how synchronous and asynchronous data replication approaches would impact the platform's performance and consistency.",
+            sub_c: "Critically evaluate the trade-offs of using full replication versus partial replication across their global data centres.",
+            reference: "Horizontal fragmentation splits rows (e.g., by region); Vertical splits columns (by attribute); Hybrid mixes both (Page 49). Synchronous replication ensures strong consistency but increases latency/overhead; Asynchronous lowers overhead but risks temporary data inconsistency. Full replication maximizes availability but consumes massive storage and synchronization bandwidth; Partial replication optimizes storage but may require remote reads."
+        },
+        {
+            scenario: "StreamNet, a media delivery service, operates a globally distributed database to manage user viewing histories. During a severe network partition between their US and EU servers, the system must continue to accept user watch-progress updates.",
+            sub_a: "Define the three components of the CAP Theorem in the context of distributed database systems.",
+            sub_b: "Explain the concept of eventual consistency and how it applies to StreamNet's user viewing histories.",
+            sub_c: "Justify why StreamNet should adopt an AP (Availability and Partition Tolerance) model over a CP model during this network partition.",
+            reference: "CAP components: Consistency (all nodes see same data), Availability (every request gets a response), Partition Tolerance (system operates despite network splits) (Page 51). Eventual consistency guarantees replicas will eventually converge when partitions resolve. AP is preferred because capturing user watch-history (Availability) is more important than immediate strict synchronization (Consistency); rejecting updates under CP degrades user experience."
+        },
+        {
+            scenario: "An online ticketing platform uses a traditional relational database enforcing strict ACID properties. During ticket sales for a major concert, the database locks up due to high concurrency, causing transactions to fail.",
+            sub_a: "Outline the four ACID properties that the traditional relational database enforces.",
+            sub_b: "Describe the DBASE (Durability, Basically Available, Soft state, Eventual consistency) model as an alternative transaction approach.",
+            sub_c: "Critically evaluate the trade-offs of migrating the ticketing platform from an ACID model to a DBASE model.",
+            reference: "ACID: Atomicity, Consistency, Isolation, Durability (Pages 51-52). DBASE prioritizes Availability and Soft state over strict Consistency, aligning with NoSQL AP systems (Page 52). Trade-off: Moving to DBASE solves concurrency lock-ups and scales massively, but the soft state/eventual consistency introduces a severe risk of double-booking tickets, requiring application-level conflict resolution."
+        },
+        {
+            scenario: "SocialSphere is a rapidly growing social media app generating massive volumes of unstructured data, including user posts, multimedia files, and dynamic user profiles. Their legacy relational database is struggling to scale.",
+            sub_a: "Identify and describe the characteristics of Big Data (the 5 V's) that SocialSphere is currently experiencing.",
+            sub_b: "Explain the four primary types of NoSQL databases available to replace their legacy system.",
+            sub_c: "Justify the selection of a Document Store (e.g., MongoDB) over a Key-Value store for managing SocialSphere's dynamic user profiles.",
+            reference: "5 Vs: Volume, Velocity, Variety, Veracity, Value (Page 61). NoSQL Types: Document Store, Key-Value, Column-Family, Graph (Page 23). A Document Store is justified because it handles JSON-like, highly nested, flexible schemas ideal for dynamic user profiles with varying attributes, whereas a Key-Value store is too simplistic for querying inner attributes."
+        },
+        {
+            scenario: "A financial intelligence agency is tasked with uncovering complex money laundering networks. The data involves millions of individuals, bank accounts, and transactional relationships currently stored in rigid relational tables.",
+            sub_a: "Explain the fundamental structure of a Graph Database (nodes, edges, and properties).",
+            sub_b: "Describe how index-free adjacency allows Graph Databases to efficiently traverse highly connected data.",
+            sub_c: "Critically evaluate the advantages of using a Graph Database for fraud detection compared to using complex JOIN operations in a traditional RDBMS.",
+            reference: "Nodes represent entities; Edges represent relationships; Properties add context/metadata (Page 27-28). Index-free adjacency means nodes directly point to related nodes, allowing instantaneous traversal without index lookups. Advantage: RDBMS requires highly expensive, slow recursive JOINs for deep networks, whereas Graph DBs natively and rapidly uncover hidden connections in fraud rings."
+        },
+        {
+            scenario: "A healthcare provider wants to migrate its patient records database to the cloud to reduce hardware costs. However, due to strict patient privacy regulations, they cannot store highly sensitive data on shared public infrastructure.",
+            sub_a: "Define the concept of a Cloud Database System and its primary deployment models (Public, Private, Hybrid, Multi-cloud).",
+            sub_b: "Outline the benefits the healthcare provider would gain by moving to a cloud database environment.",
+            sub_c: "Justify the use of a Hybrid Cloud deployment model to satisfy both their cost-reduction goals and strict regulatory compliance.",
+            reference: "Cloud Database runs on cloud infrastructure via DBaaS or managed hosting. Deployment: Public (shared), Private (dedicated), Hybrid (mix), Multi-cloud (multiple providers) (Pages 76-78). Benefits: Reduced upfront CapEx costs, rapid deployment, automated backups. Hybrid justification: Sensitive patient records can remain on a highly secure, compliant Private Cloud, while general analytics and public apps run on cost-effective Public Cloud infrastructure."
+        },
+        {
+            scenario: "A multinational retail corporation has acquired three regional competitors. Each acquired company has its own autonomous, heterogeneous database. The corporation needs to perform comprehensive historical sales analysis across all entities.",
+            sub_a: "Contrast the architecture of a Data Warehouse with that of a Federated Database System.",
+            sub_b: "Describe the ETL (Extract, Transform, Load) process required to build the Data Warehouse for this corporation.",
+            sub_c: "Critically evaluate why a Data Warehouse is more suitable for the corporation's historical sales analysis than querying a Federated Database System in real-time.",
+            reference: "Data Warehouse physically centralizes historical data for OLAP; Federated DB virtually integrates autonomous live databases without data movement (Pages 83-84). ETL involves extracting data, transforming/cleaning it to a standard format, and loading it into the warehouse. Evaluation: Complex historical analytics over a Federated DB would cause severe real-time performance bottlenecks on operational systems, making a dedicated, optimized Data Warehouse vastly superior for OLAP."
+        },
+        {
+            scenario: "HealthPlus hospital recently suffered a data breach where attackers exploited a poorly coded search interface on their web portal to access, modify, and download sensitive patient medical records.",
+            sub_a: "Explain the CIA Triad (Confidentiality, Integrity, Availability) as the core objectives of database security.",
+            sub_b: "Identify the specific type of attack (e.g., SQL Injection) that likely caused the breach, detailing how it exploits input fields.",
+            sub_c: "Justify the implementation of parameterised queries and database firewalls as primary defence mechanisms against this threat.",
+            reference: "CIA: Confidentiality (authorized access only), Integrity (accuracy/unaltered), Availability (accessible when needed) (Page 84-85). Attack: SQL Injection, where attackers insert malicious SQL via web forms to manipulate the database engine. Justification: Parameterized queries separate code from data, preventing execution of injected commands; Database firewalls inspect and block malicious SQL traffic patterns before they hit the DBMS."
+        },
+        {
+            scenario: "An employee at a corporate accounting firm deliberately altered several financial transaction records to cover up embezzlement. The employee used their legitimate system login, which had full administrative rights across the entire database.",
+            sub_a: "Explain the concept of Privilege Abuse and how it manifests as an insider threat in database systems.",
+            sub_b: "Describe Role-Based Access Control (RBAC) and how it simplifies database permission management.",
+            sub_c: "Critically evaluate how enforcing the 'principle of least privilege' and implementing strict audit logging could have prevented or detected this incident.",
+            reference: "Privilege Abuse occurs when authorized internal users misuse their access rights for unauthorized actions/sabotage (Page 86). RBAC assigns permissions to job roles rather than individuals, streamlining management. Evaluation: 'Least privilege' would have restricted the accountant from administrative deletion/alteration rights not required for their daily duties. Audit logs provide an immutable forensic trail of 'who did what and when', ensuring rapid detection."
+        },
+        {
+            scenario: "A high-frequency stock trading platform requires a database that can handle millions of transactions per second across global markets while ensuring absolute zero data loss and strict consistency for every trade.",
+            sub_a: "Explain the limitations of traditional RDBMS and NoSQL systems in meeting the dual demands of this trading platform.",
+            sub_b: "Describe the architectural features of NewSQL databases that allow them to provide both high scalability and strong transactional consistency.",
+            sub_c: "Justify the selection of a NewSQL database over an eventually consistent NoSQL database for this specific financial application.",
+            reference: "RDBMS struggles with horizontal scalability and distributed loads; NoSQL scales horizontally but sacrifices strict ACID consistency (Page 24). NewSQL leverages in-memory processing, distributed execution engines, and MVCC to maintain ACID at massive scale. Justification: Financial trading fundamentally prohibits eventual consistency (where stale reads could lead to double-spending); NewSQL guarantees strict atomicity/consistency while providing the required global scale."
+        },
+        {
+            scenario: "A national power grid operator is deploying millions of smart meters to households. Each meter will send voltage, current, and usage readings every 5 seconds to a central database for real-time load forecasting and anomaly detection.",
+            sub_a: "Outline the unique characteristics of a Time-Series Database (TSDB) compared to a general-purpose relational database.",
+            sub_b: "Explain the processes of data ingestion, downsampling, and retention policies within a TSDB.",
+            sub_c: "Critically evaluate the advantages of using a TSDB for the smart meter initiative instead of a traditional relational database.",
+            reference: "TSDB is optimized for time-stamped continuous data, high ingestion rates, and chronological querying (Page 28-29). Downsampling aggregates older data at lower resolutions to save space; retention policies auto-delete obsolete data. Evaluation: Relational databases will suffer severe I/O bottlenecks handling millions of continuous sequential inserts per second, whereas TSDB natively compresses and ingests time-streams effortlessly."
+        },
+        {
+            scenario: "A legacy airline reservation system, originally built in the 1980s, uses a Hierarchical Database model to store flight routes and passenger bookings. The airline is considering an upgrade to handle complex codeshare flights with partner airlines.",
+            sub_a: "Contrast the tree-like structure of a Hierarchical Database with the graph-like structure of a Network Database.",
+            sub_b: "Describe the challenges of modelling many-to-many relationships (like passengers on multiple flights) in a hierarchical model.",
+            sub_c: "Justify why migrating to a Relational Database System (RDBMS) would be a more strategic long-term decision for the airline than adopting a Network database.",
+            reference: "Hierarchical relies on strict one-to-many parent-child trees; Network databases use sets allowing many-to-many graph connections (Pages 15-18). Hierarchical models force data redundancy to simulate many-to-many links. Justification: While Network DBs solve the relationship issue, they are complex, rigid, and largely obsolete. RDBMS offers industry-standard SQL, high flexibility via foreign keys, and vast modern ecosystem support."
+        },
+        {
+            scenario: "An engineering firm is developing a new Computer-Aided Design (CAD) application. The application needs to natively store deeply nested, complex 3D object models that include encapsulation, inheritance, and polymorphic behaviours.",
+            sub_a: "Explain the core principles of an Object-Oriented Database Management System (OODBMS) including encapsulation and inheritance.",
+            sub_b: "Describe how an Object Identifier (OID) functions within an OODBMS to maintain data integrity.",
+            sub_c: "Critically evaluate the trade-offs of using an OODBMS for the CAD application versus mapping the objects to a traditional relational database (Impedance Mismatch).",
+            reference: "OODBMS directly stores objects. Encapsulation combines data/behavior; Inheritance allows new classes based on existing ones (Pages 21-22). OID uniquely identifies an object globally regardless of attribute changes. Evaluation: RDBMS suffers from 'Impedance Mismatch' requiring complex, slow translations (ORMs) to map nested objects to flat tables. OODBMS avoids this friction natively for CAD, though it sacrifices standardized SQL reporting tools."
+        },
+        {
+            scenario: "A data analyst submits a complex SQL query to a university database to find the average grades of students across five different faculties over a ten-year period. The query takes several minutes to execute.",
+            sub_a: "Outline the internal representation process where a SQL query is translated into a query tree by the query processor.",
+            sub_b: "Differentiate between rule-based and cost-based query optimisation techniques used by the DBMS.",
+            sub_c: "Justify how the implementation of appropriate database indexes could significantly reduce the execution cost of this specific query.",
+            reference: "The query processor parses human-readable SQL into logical operational steps (query tree) (Page 96). Rule-based uses predefined heuristics; Cost-based estimates CPU/IO overhead using database statistics to pick the cheapest execution plan (Page 94). Indexes prevent the database from performing expensive full-table scans over ten years of records, allowing immediate location of specific faculty/grade data, drastically lowering execution cost."
+        },
+        {
+            scenario: "A startup tech company experiences unpredictable, massive spikes in database traffic due to viral marketing campaigns. They are currently managing their own on-premises PostgreSQL servers, leading to frequent crashes during these surges.",
+            sub_a: "Explain the concepts of scalability (vertical vs horizontal) and elasticity in the context of cloud database systems.",
+            sub_b: "Describe the financial transition from Capital Expenditure (CapEx) to Operational Expenditure (OpEx) when moving to the cloud.",
+            sub_c: "Critically evaluate the risks and benefits of adopting a fully managed Database-as-a-Service (DBaaS) model for this startup.",
+            reference: "Vertical scales hardware power; Horizontal distributes nodes. Elasticity is auto-scaling up/down dynamically (Pages 74, 30). CapEx involves heavy upfront hardware buying; OpEx is a pay-as-you-go flexible model (Page 72). DBaaS benefits: automatic handling of viral spikes, no maintenance overhead. Risks: ongoing subscription costs, vendor lock-in, reliance on external network stability."
+        },
+        {
+            scenario: "A large telecommunications provider needs to design the physical storage layout for millions of daily call detail records (CDRs). The system primarily requires lightning-fast inserts and occasional sequential scans for monthly billing.",
+            sub_a: "Define the concept of physical file organisation in a database system.",
+            sub_b: "Contrast heap (unordered) file organisation with sequential (ordered) file organisation.",
+            sub_c: "Justify which file organisation scheme is most appropriate for the telecommunication provider's specific workload requirements.",
+            reference: "File organization is how records are physically stored on disk. Heap places records wherever space exists (fast insert, slow search); Sequential orders them by a key (slower insert, fast range search) (Page 94). Justification: Given the critical need for massive, high-speed daily inserts of CDRs, a Heap file organization is ideal, preventing sorting overhead during writing, while indexing can assist the occasional billing scans."
+        },
+        {
+            scenario: "A retail company suffered a ransomware attack that encrypted their primary database. They attempted to restore operations using their offsite backups, only to find the backup files had also been compromised and stolen by the attackers.",
+            sub_a: "Explain the difference between data-at-rest encryption and data-in-transit encryption.",
+            sub_b: "Describe the vulnerabilities associated with backup data theft if backups are not properly secured.",
+            sub_c: "Critically evaluate the best practices the retail company should have implemented to secure both their primary database and their backup systems against ransomware.",
+            reference: "Data-at-rest encrypts stored disks; Data-in-transit encrypts network communication (Pages 87-88). Backup vulnerability: Attackers target poorly secured backups because they contain identical data but often lack the strict monitoring of production systems. Best Practices: Backups must utilize identical robust encryption, strict access controls (RBAC), and ideally be stored immutably/offline so ransomware cannot traverse the network to overwrite them."
+        },
+        {
+            scenario: "Following a corporate merger, two retail giants need to integrate their database systems. Company A uses Oracle (relational), while Company B uses MongoDB (NoSQL). They want to create a unified view of customer data across both systems.",
+            sub_a: "Differentiate between Homogeneous and Heterogeneous distributed database architectures.",
+            sub_b: "Outline the specific challenges involved in integrating these two diverse database environments.",
+            sub_c: "Justify the implementation of a Federated Database System to achieve a unified customer view without forcing a complete data migration.",
+            reference: "Homogeneous uses the same DBMS/schema across all nodes; Heterogeneous uses different DBMS software, schemas, or models (Pages 43-44). Challenges: Requires complex translation layers/middleware to reconcile Oracle's strict SQL schema with MongoDB's flexible document structure. A Federated Database acts as a virtual integration layer, leaving the autonomous systems intact and saving the massive cost/risk of physical migration while permitting global unified queries (Page 48)."
+        }
+    ];
+
+    // --- STATE MANAGEMENT ---
+    let state = {
+        candidate: "",
+        apiKey: "",
+        answers: new Array(20).fill(""),
+        currentQ: 0,
+        timeLeft: 3 * 60 * 60, // 3 Hours (10800 seconds)
+        violations: 0,
+        status: "Pending" // Pending, Active, Completed
+    };
+
+    let timerInterval, autosaveInterval;
+
+    // --- DOM ELEMENTS ---
+    const dom = {
+        modalOverlay: document.getElementById('start-modal-overlay'),
+        inputName: document.getElementById('candidate-name'),
+        inputApi: document.getElementById('api-key'),
+        btnStart: document.getElementById('btn-start-exam'),
+        
+        examWrapper: document.getElementById('exam-wrapper'),
+        timerDisplay: document.getElementById('timer'),
+        navGrid: document.getElementById('navigator-grid'),
+        displayName: document.getElementById('display-name'),
+        violationDisplay: document.getElementById('violation-display'),
+        
+        promptHeader: document.getElementById('prompt-header'),
+        scenarioText: document.getElementById('scenario-text'),
+        subQuestions: document.getElementById('sub-questions'),
+        answerBox: document.getElementById('answer-box'),
+        wordCount: document.getElementById('word-count'),
+        
+        btnPrev: document.getElementById('btn-prev'),
+        btnNext: document.getElementById('btn-next'),
+        btnSubmit: document.getElementById('btn-submit'),
+
+        resultsWrapper: document.getElementById('results-wrapper'),
+        finalScore: document.getElementById('final-score'),
+        resultsContainer: document.getElementById('results-container')
+    };
+
+    // --- INITIALIZATION ---
+    function init() {
+        const saved = localStorage.getItem('mit8103_exam_v2_state');
+        if (saved) {
+            state = JSON.parse(saved);
+            if (state.status === "Active") {
+                startExam(true);
+            } else if (state.status === "Completed") {
+                showOfflineResults();
+            }
+        }
+    }
+
+    // --- SETUP UI ---
+    function buildNavigator() {
+        dom.navGrid.innerHTML = '';
+        for (let i = 0; i < 20; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.innerText = i + 1;
+            btn.onclick = () => { saveState(); loadQuestion(i); };
+            dom.navGrid.appendChild(btn);
+        }
+        updateNavigatorVisuals();
+    }
+
+    function updateNavigatorVisuals() {
+        const buttons = dom.navGrid.querySelectorAll('.nav-btn');
+        buttons.forEach((btn, index) => {
+            btn.classList.remove('active');
+            if (index === state.currentQ) btn.classList.add('active');
+            
+            if (state.answers[index].trim().length > 0) {
+                btn.classList.add('answered');
+            } else {
+                btn.classList.remove('answered');
+            }
+        });
+    }
+
+    // --- EXAM FLOW ---
+    dom.btnStart.addEventListener('click', () => {
+        const name = dom.inputName.value.trim();
+        const api = dom.inputApi.value.trim();
+        if (!name) return alert("Please enter Candidate Name");
+        
+        state.candidate = name;
+        state.apiKey = api;
+        state.status = "Active";
+        
+        startExam(false);
+    });
+
+    function startExam(isResume) {
+        dom.modalOverlay.style.display = 'none';
+        dom.examWrapper.style.display = 'block';
+        dom.displayName.innerText = `Candidate: ${state.candidate}`;
+        
+        buildNavigator();
+        updateViolationDisplay();
+        loadQuestion(state.currentQ);
+        
+        timerInterval = setInterval(tickTimer, 1000);
+        autosaveInterval = setInterval(saveState, 30000); // 30s autosave
+        saveState();
+    }
+
+    function loadQuestion(index) {
+        state.currentQ = index;
+        const q = questions[index];
+        
+        dom.promptHeader.innerText = `Essay Prompt ${index + 1} / 20`;
+        dom.scenarioText.innerHTML = `<strong>Main Scenario:</strong> ${q.scenario}`;
+        
+        // Render sub-questions strictly as bold letters (a., b., c.)
+        dom.subQuestions.innerHTML = `
+            <p><strong>a.</strong> ${q.sub_a}</p>
+            <p><strong>b.</strong> ${q.sub_b}</p>
+            <p><strong>c.</strong> ${q.sub_c}</p>
+        `;
+
+        dom.answerBox.value = state.answers[index];
+        updateWordCount();
+        updateNavigatorVisuals();
+
+        dom.btnPrev.disabled = (index === 0);
+        dom.btnNext.disabled = (index === 19);
+    }
+
+    dom.answerBox.addEventListener('input', () => {
+        state.answers[state.currentQ] = dom.answerBox.value;
+        updateWordCount();
+        
+        const navBtn = dom.navGrid.children[state.currentQ];
+        if (state.answers[state.currentQ].trim().length > 0) {
+            navBtn.classList.add('answered');
+        } else {
+            navBtn.classList.remove('answered');
+        }
+    });
+
+    function updateWordCount() {
+        const text = dom.answerBox.value.trim();
+        const words = text === "" ? 0 : text.split(/\s+/).length;
+        dom.wordCount.innerText = `${words} / 1500 words`;
+        
+        if (words > 1500) {
+            dom.wordCount.classList.add('limit-reached');
+            const truncated = text.split(/\s+/).slice(0, 1500).join(" ");
+            dom.answerBox.value = truncated;
+            state.answers[state.currentQ] = truncated;
+        } else {
+            dom.wordCount.classList.remove('limit-reached');
+        }
+    }
+
+    dom.btnPrev.onclick = () => { saveState(); loadQuestion(state.currentQ - 1); };
+    dom.btnNext.onclick = () => { saveState(); loadQuestion(state.currentQ + 1); };
+
+    function tickTimer() {
+        if (state.timeLeft <= 0) {
+            submitExam();
+            return;
+        }
+        state.timeLeft--;
+        const h = Math.floor(state.timeLeft / 3600).toString().padStart(2, '0');
+        const m = Math.floor((state.timeLeft % 3600) / 60).toString().padStart(2, '0');
+        const s = (state.timeLeft % 60).toString().padStart(2, '0');
+        dom.timerDisplay.innerText = `${h}:${m}:${s}`;
+    }
+
+    function saveState() {
+        if (state.status === "Active") {
+            localStorage.setItem('mit8103_exam_v2_state', JSON.stringify(state));
+        }
+    }
+
+    // --- PROCTORING ---
+    window.addEventListener('blur', () => {
+        if (state.status === "Active") {
+            state.violations++;
+            updateViolationDisplay();
+            saveState();
+            
+            if (state.violations >= 3) {
+                alert("SECURITY VIOLATION LIMIT REACHED. Exam automatically submitted.");
+                submitExam();
+            } else {
+                alert(`PROCTORING ALERT: Window focus lost. Violation ${state.violations}/3.`);
+            }
+        }
+    });
+
+    function updateViolationDisplay() {
+        dom.violationDisplay.innerText = `Violations: ${state.violations}/3`;
+    }
+
+    // --- GRADING & SUBMISSION ---
+    dom.btnSubmit.onclick = () => {
+        if (confirm("Submit Assessment? Ensure all 20 responses are complete. This is irreversible.")) {
+            submitExam();
+        }
+    };
+
+    async function submitExam() {
+        clearInterval(timerInterval);
+        clearInterval(autosaveInterval);
+        state.status = "Completed";
+        saveState();
+
+        dom.examWrapper.style.display = 'none';
+        dom.resultsWrapper.style.display = 'block';
+
+        let totalScore = 0;
+        let html = "";
+
+        for (let i = 0; i < questions.length; i++) {
+            const ans = state.answers[i];
+            let result;
+
+            if (!ans || ans.trim() === "") {
+                result = { score: 0, feedback: "No response provided." };
+            } else if (state.apiKey) {
+                try {
+                    result = await evaluateWithGemini(state.apiKey, questions[i], ans);
+                } catch (e) {
+                    result = evaluateFallback(questions[i], ans);
+                    result.feedback = "(API Error - Fallback Grader) " + result.feedback;
+                }
+            } else {
+                result = evaluateFallback(questions[i], ans);
+            }
+
+            totalScore += result.score;
+            html += `
+                <div class="result-box">
+                    <h3 style="margin-top:0;">Prompt ${i + 1} Score: ${result.score}/100</h3>
+                    <p style="margin-bottom:0;"><strong>Feedback:</strong> ${result.feedback}</p>
+                </div>
+            `;
+        }
+
+        const avg = (totalScore / 20).toFixed(1);
+        dom.finalScore.innerText = `Final Score: ${avg}%`;
+        dom.finalScore.style.color = "var(--accent-green)";
+        dom.resultsContainer.innerHTML = html;
+        
+        localStorage.removeItem('mit8103_exam_v2_state'); 
+    }
+
+    async function evaluateWithGemini(apiKey, qData, answer) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const promptText = `
+            You are a strict auto-grader for an Advanced Database Systems exam.
+            Scenario: ${qData.scenario}
+            Questions: a. ${qData.sub_a} b. ${qData.sub_b} c. ${qData.sub_c}
+            Reference Concepts (must be covered for full marks): ${qData.reference}
+            Student Answer: ${answer}
+            
+            Analyze the answer. Provide a JSON response EXACTLY in this format, with no markdown formatting:
+            {"score": <number 0-100>, "feedback": "<short sentence explaining the score and missing concepts>"}
+        `;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+        });
+
+        if (!response.ok) throw new Error("API call failed");
+        
+        const data = await response.json();
+        const textRes = data.candidates[0].content.parts[0].text;
+        const cleanJson = textRes.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanJson);
+    }
+
+    function evaluateFallback(qData, answer) {
+        const words = answer.toLowerCase().split(/\s+/);
+        const refWords = qData.reference.toLowerCase().replace(/[^\w\s]/gi, '').split(/\s+/);
+        let matchCount = 0;
+        refWords.forEach(rw => { if (rw.length > 4 && words.includes(rw)) matchCount++; });
+
+        let baseScore = Math.min((words.length / 50) * 40, 40); 
+        let keywordScore = Math.min((matchCount / (refWords.length / 2)) * 60, 60); 
+        
+        return {
+            score: Math.round(baseScore + keywordScore),
+            feedback: `Heuristic Graded. Detected ${matchCount} core concept keywords based on length and relevance.`
+        };
+    }
+
+    function showOfflineResults() {
+        dom.modalOverlay.style.display = 'none';
+        dom.examWrapper.style.display = 'none';
+        dom.resultsWrapper.style.display = 'block';
+        dom.finalScore.innerText = "Assessment previously completed and submitted.";
+    }
+
+    init();
+</script>
+</body>
+</html>
